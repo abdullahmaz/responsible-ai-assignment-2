@@ -2,8 +2,10 @@
 *.csv
 *.tsv
 *.parquet
-data/
+data/*
+!data/README.md
 datasets/
+artifacts/
 
 # Model checkpoints
 *.pt
