@@ -214,3 +214,22 @@ class ModerationPipeline:
 
 
 __all__ = ["BLOCKLIST", "input_filter", "ModerationPipeline"]
+
+
+if __name__ == "__main__":
+    # Smoke-test the regex layer without touching the model so the file can be
+    # run on any machine (no GPU / no checkpoint required).
+    samples = [
+        "I will kill you tomorrow",
+        "you should kill yourself",
+        "I know where you live",
+        "those people are not human",
+        "everyone report user123 for spam",
+        "thanks for the thoughtful comment",
+    ]
+    for s in samples:
+        hit = input_filter(s)
+        if hit is None:
+            print(f"[pass-through] {s!r}")
+        else:
+            print(f"[{hit['category']:<22}] {s!r}")
