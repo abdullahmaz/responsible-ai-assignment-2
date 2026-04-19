@@ -66,6 +66,10 @@ env/
 .DS_Store
 Thumbs.db
 
+# Assignment spec (not part of submission)
+assignment_2.pdf
+*.pdf
+
 # Logs
 *.log
 runs/
