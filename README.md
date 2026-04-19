@@ -1,49 +1,69 @@
-# Auditing Content Moderation AI for Bias, Adversarial Robustness & Safety
+# responsible-ai-assignment-2
 
-FAST-NUCES Responsible & Explainable AI — Assignment 2.
+Auditing a DistilBERT-based toxicity classifier trained on the Jigsaw Unintended Bias dataset for
+bias, adversarial robustness, and safety. FAST-NUCES Responsible & Explainable AI — Assignment 2.
 
-This repository audits a DistilBERT-based toxicity classifier trained on the Jigsaw Unintended Bias in Toxicity Classification dataset. It measures bias between identity cohorts, exercises two adversarial attacks, applies three mitigation techniques, and wraps the best mitigated model in a three-layer production guardrail pipeline.
+Short version: I trained a baseline classifier, measured a ~2× FPR gap between comments associated
+with Black identity and a reference (white) cohort, broke the classifier with two different
+adversarial attacks, then applied three mitigations and wrapped the best mitigated model in a
+three-layer production pipeline.
 
-## Repository layout
+## Layout
 
-| File | Purpose |
+| File | What it does |
 | --- | --- |
-| `part1.ipynb` | Fine-tune DistilBERT on the Jigsaw dataset and compute baseline metrics. |
-| `part2.ipynb` | Bias audit between high-black and reference (white) cohorts. |
-| `part3.ipynb` | Character-level evasion attack and label-flipping poisoning attack. |
-| `part4.ipynb` | Reweighing, ThresholdOptimizer, and oversampling mitigations. |
-| `part5.ipynb` | End-to-end demonstration of the guardrail pipeline on 1,000 comments. |
-| `pipeline.py` | `ModerationPipeline` class with the three-layer `.predict()` method. |
+| `part1.ipynb` | Fine-tune DistilBERT on 100k Jigsaw rows; pick an operating threshold. |
+| `part2.ipynb` | Cohort-based bias audit (TPR / FPR / FNR / Precision / DI / SPD / EOD). |
+| `part3.ipynb` | Character-level evasion attack + 5% label-flipping poisoning attack. |
+| `part4.ipynb` | Reweighing + ThresholdOptimizer + oversampling mitigations. |
+| `part5.ipynb` | Run the three-layer pipeline on 1,000 comments, with a band sweep. |
+| `pipeline.py` | `ModerationPipeline` class used by Part 5. |
 | `requirements.txt` | Pinned dependencies. |
+| `data/README.md` | Instructions for placing the Jigsaw CSV. |
 
 ## Environment
 
 - Python 3.10
-- GPU: NVIDIA T4 (Google Colab free tier) — CUDA 12.1
-- DistilBERT training on 100k rows for 3 epochs takes roughly 30 minutes on a T4.
+- GPU: NVIDIA T4 (Google Colab free tier), CUDA 12.1
+- Training DistilBERT on 100k rows for 3 epochs: ~30 minutes per run on a T4
 
-## Reproducing the work
+On CPU the fine-tuning steps take hours and the learning-rate schedule behaves differently — use a
+GPU runtime.
 
-1. Create a free Kaggle account and accept the competition rules at
-   `https://kaggle.com/c/jigsaw-unintended-bias-in-toxicity-classification`.
-2. Download `jigsaw-unintended-bias-train.csv` and `validation.csv` into a local `data/` directory
-   (gitignored — do not commit).
-3. Install the pinned dependencies:
+## Reproducing
+
+1. **Get the data.** Accept the Kaggle rules and download
+   `jigsaw-unintended-bias-train.csv` into `data/`. Full instructions in `data/README.md`.
+2. **Install.**
    ```bash
    pip install -r requirements.txt
    ```
-4. Run the notebooks in order. Each notebook saves artefacts that the next one consumes:
-   - `part1.ipynb` writes the baseline model checkpoint to `distilbert_baseline/`.
-   - `part3.ipynb` writes the poisoned model to `distilbert_poisoned/`.
-   - `part4.ipynb` writes the best mitigated model to `distilbert_mitigated/`.
-   - `part5.ipynb` loads `distilbert_mitigated/` through `pipeline.py`.
-5. Colab users: set Runtime → Change runtime type → GPU before running. CPU runs are
-   impractical for the fine-tuning steps.
+3. **Run the notebooks in order.** Each notebook writes artefacts under `artifacts/` that the
+   next one consumes:
+   - `part1.ipynb` → `artifacts/{train,eval}.parquet`,
+     `artifacts/baseline_eval_{probs,labels}.npy`, checkpoint in `distilbert_baseline/`
+   - `part2.ipynb` → `artifacts/part2_summary.csv`
+   - `part3.ipynb` → `distilbert_poisoned/` checkpoint
+   - `part4.ipynb` → `distilbert_reweighed/`, `distilbert_oversampled/`,
+     `artifacts/best_mitigated.json`
+   - `part5.ipynb` → loads `pipeline.ModerationPipeline` against the best mitigated model
 
-## Notes
+4. **Quick sanity check** for the regex layer (no GPU, no checkpoint required):
+   ```bash
+   python pipeline.py
+   ```
 
-- Dataset files and model checkpoints are excluded from version control (see `.gitignore`). The
-  Jigsaw training file alone is roughly 700 MB and model checkpoints are several hundred MB each.
-- The fairness audit follows the methodology used in the Stanford NLP 2019 work on the Jigsaw
-  dataset — soft identity scores binarised at `≥ 0.5` for the high-black cohort and `white ≥ 0.5
-  AND black < 0.1` for the reference cohort.
+## Notes on what is and isn't committed
+
+- `*.csv`, `*.parquet`, `*.pt`, `*.bin`, and the `data/`, `artifacts/`, and `distilbert_*/`
+  directories are all git-ignored — they're each hundreds of MB and not part of the submission.
+- Only the `data/README.md` placeholder inside `data/` is tracked.
+
+## Methodology pointers
+
+- Cohort filters follow the Stanford NLP 2019 methodology on this dataset:
+  - **high_black** = `black ≥ 0.5`
+  - **reference** = `black < 0.1 AND white ≥ 0.5`
+- Evaluation threshold is the macro-F1-maximising `t = 0.4` chosen in Part 1.
+- Part 4 treats `group = 1` as the privileged (reference) cohort and `group = 0` as the
+  unprivileged (high-black) cohort — the AIF360 convention.
