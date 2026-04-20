@@ -30,6 +30,15 @@ three-layer production pipeline.
 On CPU the fine-tuning steps take hours and the learning-rate schedule behaves differently — use a
 GPU runtime.
 
+> **Blackwell (RTX 50-series) note.** `requirements.txt` pins `torch==2.1.2`, which is a CUDA 12.1
+> build with no kernels for `sm_120`. If you are reproducing this on a Blackwell GPU (RTX 5070 /
+> 5080 / 5090), after `pip install -r requirements.txt` run:
+> ```bash
+> pip install --force-reinstall --no-deps torch==2.7.1 --index-url https://download.pytorch.org/whl/cu128
+> ```
+> The rest of the pinned stack (`transformers==4.38.2`, `accelerate==0.27.2`, etc.) is unaffected.
+> On the original Colab T4 (sm_75), the pinned `torch==2.1.2` works as-is — no override needed.
+
 ## Reproducing
 
 1. **Get the data.** Accept the Kaggle rules and download

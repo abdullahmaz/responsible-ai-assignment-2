@@ -51,13 +51,13 @@ venv/
 env/
 .venv/
 .env
+.venv-*/
 
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb_checkpoints
 
 # IDE
-.vscode/
 .idea/
 *.swp
 *.swo
@@ -75,3 +75,7 @@ assignment_2.pdf
 runs/
 wandb/
 tensorboard_logs/
+temp_auto_push.bat
+temp_interactive_push.bat
+.gitignore
+branch_structure.json
